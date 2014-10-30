@@ -1,0 +1,9 @@
+/*use ascii to light up buttons*/
+/*o*/
+/*public class Node {*/
+  /*int value;*/
+  /*Node left, node;}*/
+
+  public class GUI {
+
+
