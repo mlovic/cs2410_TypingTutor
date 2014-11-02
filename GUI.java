@@ -6,45 +6,61 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
+import java.text.DecimalFormat;
+import java.lang.*;
 
+// Marko Lovic
+//
+// How to sort map by value
+// Only three prompts. In class or program
+// Ways to extract classes
+//
 public class GUI extends JFrame implements KeyListener, ItemListener {
     private final int WIDTH = 800, LENGTH = 600;
 
     private JTextArea promptBox, typeBox;
-    private JLabel wrongLabel, numErrorsLabel;
+    private JLabel wrongLabel, numErrorsLabel, accuracyLabel, wpmLabel;
     private JRadioButton radio1, radio2, radio3;
     private ButtonGroup bgroup;
     private java.util.List<JButton> buttons;
-    private String qwerty, currentp, typedText;
+    private String qwerty, prompt, typedText;
     private String prompts[];
-    private int cc, rowBreak1, rowBreak2, numErrors, currentpNum;
+    private double accuracy, startTime, endTime;
+    private int currentChar, rowBreak1, rowBreak2, numErrors, promptNum, 
+                numKeysTyped;
+    private Map<Character, Integer> errors; 
 
     public GUI() {
         this.setLayout(null);
+        setVisible(true);
         this.addKeyListener(this);
         this.setFocusable(true);
-        this.requestFocus();
+        this.requestFocusInWindow();
 
+        errors = new HashMap<Character, Integer>();
         qwerty = "qwertyuiopasdfghjkl;'zxcvbnm,./ ";
         prompts = new String[] { "prompt one",
                       "prompt two",
                       "prompt three" };
-        currentpNum = 0;
-        currentp = prompts[currentpNum];
+        promptNum = 0;
+        prompt = prompts[promptNum];
         typedText = "> ";
         rowBreak1 = 10;
         rowBreak2 = 21;
         numErrors = 0;
+        currentChar = 0;
+        numKeysTyped = 0;
         radio1 = new JRadioButton("prompt 1");
         radio2 = new JRadioButton("prompt 2");
         radio3 = new JRadioButton("prompt 3");
         bgroup = new ButtonGroup();
-        promptBox = new JTextArea(currentp);
+        promptBox = new JTextArea(prompt);
         typeBox = new JTextArea(typedText);
         buttons = new ArrayList<JButton>();
         wrongLabel = new JLabel("Wrong!");
         numErrorsLabel = new JLabel("Errors: ");
-        cc = 0;
+        accuracyLabel = new JLabel("Accuracy: ");
+        wpmLabel = new JLabel("WPM: ");
 
         promptBox.setSize(400, 100);
         promptBox.setLocation(200, 100);
@@ -63,21 +79,29 @@ public class GUI extends JFrame implements KeyListener, ItemListener {
         numErrorsLabel.setLocation(500, 50);
         numErrorsLabel.setVisible(true);
 
+        accuracyLabel.setSize(200, 50);
+        accuracyLabel.setLocation(200, 150);
+        accuracyLabel.setVisible(false);
+
+        wpmLabel.setSize(150, 50);
+        wpmLabel.setLocation(600, 100);
+        wpmLabel.setVisible(true);
+
         radio1.setSize(100, 50);
         radio1.setLocation(50, 100);
         radio1.addItemListener(this);
         radio1.setSelected(true);
+        radio1.setFocusable(false);
 
         radio2.setSize(100, 50);
         radio2.setLocation(50, 150);
         radio2.addItemListener(this);
+        radio2.setFocusable(false);
 
         radio3.setSize(100, 50);
         radio3.setLocation(50, 200);
         radio3.addItemListener(this);
-
- //List<String> slist = new ArrayList<String>();
-  //slist.add(new String("Java")); 
+        radio3.setFocusable(false);
 
         Container pane = getContentPane();
         pane.add(promptBox);
@@ -87,6 +111,8 @@ public class GUI extends JFrame implements KeyListener, ItemListener {
         pane.add(radio1);
         pane.add(radio2);
         pane.add(radio3);
+        pane.add(accuracyLabel);
+        pane.add(wpmLabel);
         addButtons();
         addSpacebar();
 
@@ -107,6 +133,7 @@ public class GUI extends JFrame implements KeyListener, ItemListener {
             buttons.get(i).setSize(50, 50);
             setPosition(i);
             this.getContentPane().add(buttons.get(i));
+            buttons.get(i).setFocusable(false);
         }
     }
         
@@ -134,16 +161,17 @@ public class GUI extends JFrame implements KeyListener, ItemListener {
     }
 
     public void setButtonColor(KeyEvent key, int i) {
-        if (key.getKeyChar() == currentp.charAt(cc)) {
+        if (key.getKeyChar() == prompt.charAt(currentChar)) {
             buttons.get(i).setBackground(Color.green);
         }
-        else if (key.getKeyChar() != currentp.charAt(cc)) {
+        else if (key.getKeyChar() != prompt.charAt(currentChar)) {
             buttons.get(i).setBackground(Color.red);
         }
     }
 
     @Override
     public void keyPressed (KeyEvent e) {
+        System.out.println("you typed a key\n");
         int i = qwerty.indexOf(e.getKeyChar());
         System.out.println(e.getKeyChar());
         System.out.println(i);
@@ -160,23 +188,27 @@ public class GUI extends JFrame implements KeyListener, ItemListener {
 
     @Override
     public void keyTyped(KeyEvent e) {
-        if (e.getKeyChar() == currentp.charAt(cc)) {
+        numKeysTyped++;
+        if (e.getKeyChar() == prompt.charAt(currentChar)) {
             wrongLabel.setVisible(false);
             typedText+= e.getKeyChar();
             typeBox.setText(typedText);
-            ++cc;
+            ++currentChar;
         }
-        else if (e.getKeyChar() != currentp.charAt(cc)) {
+        else if (e.getKeyChar() != prompt.charAt(currentChar)) {
             System.out.println("wrong!");
             wrongLabel.setVisible(true);
             ++numErrors;
             numErrorsLabel.setText("Errors: " + numErrors);
+            addError(prompt.charAt(currentChar));
         }
-        if (cc == currentp.length()) {
+        if (currentChar == prompt.length()) {
             System.out.println("end of prompt\n");
-            ++currentpNum;
-            if (currentpNum < 3) {
-                selectRadioButton(currentpNum);
+            endTime = System.nanoTime();
+            calculateWPM();
+            ++promptNum;
+            if (promptNum < 3) {
+                selectRadioButton(promptNum);
             }
             else {
                 displayFinalScreen();
@@ -184,18 +216,39 @@ public class GUI extends JFrame implements KeyListener, ItemListener {
         }
     }
 
-    public void displayFinalScreen() {
-        promptBox.setText("Final screen");
+    public void calculateWPM() {
+        double timeElapsed = endTime - startTime;
+        int numWords = prompt.length() - prompt.replaceAll(" ", "").length() + 1;
+        System.out.println("numWords" + numWords);
+        System.out.println("time" + timeElapsed);
+        double wpm = numWords / (timeElapsed / 1000000000) * 60; 
+        wpmLabel.setText("Speed: " + new DecimalFormat("#00.00").format(wpm) + " wpm");
     }
 
-    public void changePrompt(int promptNum) {
-        System.out.println("change prompt");
-        currentp = prompts[promptNum];
-        //radio2.setSelected(true);
-        promptBox.setText(currentp);
-        cc = 0;
+    public void addError(char missedChar) {
+        int errorFreq = errors.containsKey(missedChar) ? errors.get(missedChar) : 0;
+        errors.put(missedChar, errorFreq + 1); 
+    }
+
+    public void displayErrors() {
+        
+    }
+
+    public void displayFinalScreen() {
+        promptBox.setVisible(false);
+        accuracyLabel.setVisible(true);
+        double accuracy = 100 - ((double)numErrors * 100 / numKeysTyped);
+        accuracyLabel.setText("Accuracy: " + new DecimalFormat("#0.00").format(accuracy) + "%");
+    }
+
+    public void changePrompt(int n) {
+        System.out.println("change to prompt" + n);
+        promptNum = n;
+        prompt = prompts[promptNum];
+        promptBox.setText(prompt);
+        currentChar = 0;
         resetTypeBox();
-        //selectRadioButton(promptNum);
+        startTime = System.nanoTime();
     }
 
     public void resetTypeBox() {
@@ -225,6 +278,7 @@ public class GUI extends JFrame implements KeyListener, ItemListener {
         else if (radio3.isSelected())  {
             changePrompt(2);
         }
+        System.out.println("itemlistener done");
     }
 }
 
