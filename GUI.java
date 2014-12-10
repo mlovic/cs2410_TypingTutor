@@ -21,6 +21,7 @@ public class GUI extends JFrame implements KeyListener, ItemListener {
     private JTextArea promptBox, typeBox;
     private JLabel wrongLabel, numErrorsLabel, accuracyLabel, wpmLabel;
     private JRadioButton radio1, radio2, radio3;
+    private JCheckBox checkBox;
     private ButtonGroup bgroup;
     private java.util.List<JButton> buttons;
     private String qwerty, prompt, typedText;
@@ -39,9 +40,11 @@ public class GUI extends JFrame implements KeyListener, ItemListener {
 
         errors = new HashMap<Character, Integer>();
         qwerty = "qwertyuiopasdfghjkl;'zxcvbnm,./ ";
-        prompts = new String[] { "prompt one",
-                      "prompt two",
-                      "prompt three" };
+        prompts = new String[] { 
+            "The average typing speed of a computer typist is just 36wpm. Touch typists are generally faster, averaging a quick 48 words per minute. The fastest typing speed ever recorded is currently an extreme 216 words per minute! Average accuracy is 92%. Bananas?",
+            "\"The quick brown fox jumps over the lazy dog\" is a phrase that's commonly used to showcase fonts, as it contains every letter of the english language, making it a pangram. My personal favorite is: \"You go tell that vapid existentialist quack Freddy Nietzsche that he can just bite me, twice.\"",
+            "Okay, we're finally down to the last prompt. I'm running out of things to say. Maybe I could give you more amazing typing fun facts? Or write you a quick, but majestic poem? A story about the quick brown fox. Perhaps I could write about special characters like / or *. Bye!"  
+        };
         promptNum = 0;
         prompt = prompts[promptNum];
         typedText = "> ";
@@ -54,22 +57,27 @@ public class GUI extends JFrame implements KeyListener, ItemListener {
         radio2 = new JRadioButton("prompt 2");
         radio3 = new JRadioButton("prompt 3");
         bgroup = new ButtonGroup();
+        checkBox = new JCheckBox("Change prompt automatically");
         promptBox = new JTextArea(prompt);
         typeBox = new JTextArea(typedText);
         buttons = new ArrayList<JButton>();
         wrongLabel = new JLabel("Wrong!");
         numErrorsLabel = new JLabel("Errors: ");
         accuracyLabel = new JLabel("Accuracy: ");
-        wpmLabel = new JLabel("WPM: ");
+        wpmLabel = new JLabel("Speed: ");
 
         promptBox.setSize(400, 100);
         promptBox.setLocation(200, 100);
         promptBox.setFocusable(false);
         promptBox.setBackground(null);
+        promptBox.setLineWrap(true);
+        promptBox.setWrapStyleWord(true);
 
         typeBox.setSize(400, 100);
         typeBox.setLocation(200, 200);
         typeBox.setFocusable(false);
+        typeBox.setLineWrap(true);
+        typeBox.setWrapStyleWord(true);
 
         wrongLabel.setSize(100, 50);
         wrongLabel.setLocation(50, 50);
@@ -84,7 +92,7 @@ public class GUI extends JFrame implements KeyListener, ItemListener {
         accuracyLabel.setVisible(false);
 
         wpmLabel.setSize(150, 50);
-        wpmLabel.setLocation(600, 100);
+        wpmLabel.setLocation(600, 50);
         wpmLabel.setVisible(true);
 
         radio1.setSize(100, 50);
@@ -103,6 +111,12 @@ public class GUI extends JFrame implements KeyListener, ItemListener {
         radio3.addItemListener(this);
         radio3.setFocusable(false);
 
+        checkBox.setSize(400, 50);
+        checkBox.setLocation(200, 300);
+        //checkBox.addItemListener(this);
+        checkBox.setFocusable(false);
+        checkBox.setSelected(true);
+
         Container pane = getContentPane();
         pane.add(promptBox);
         pane.add(typeBox);
@@ -113,6 +127,7 @@ public class GUI extends JFrame implements KeyListener, ItemListener {
         pane.add(radio3);
         pane.add(accuracyLabel);
         pane.add(wpmLabel);
+        pane.add(checkBox);
         addButtons();
         addSpacebar();
 
@@ -202,10 +217,10 @@ public class GUI extends JFrame implements KeyListener, ItemListener {
             numErrorsLabel.setText("Errors: " + numErrors);
             addError(prompt.charAt(currentChar));
         }
-        if (currentChar == prompt.length()) {
+        calculateWPM();
+        if (currentChar == prompt.length() && checkBox.isSelected()) {
             System.out.println("end of prompt\n");
             endTime = System.nanoTime();
-            calculateWPM();
             ++promptNum;
             if (promptNum < 3) {
                 selectRadioButton(promptNum);
@@ -217,12 +232,12 @@ public class GUI extends JFrame implements KeyListener, ItemListener {
     }
 
     public void calculateWPM() {
-        double timeElapsed = endTime - startTime;
-        int numWords = prompt.length() - prompt.replaceAll(" ", "").length() + 1;
-        System.out.println("numWords" + numWords);
-        System.out.println("time" + timeElapsed);
+        double timeElapsed = System.nanoTime() - startTime;
+        int numWords = typedText.length() - 
+                                typedText.replaceAll(" ", "").length() - 1;
         double wpm = numWords / (timeElapsed / 1000000000) * 60; 
-        wpmLabel.setText("Speed: " + new DecimalFormat("#00.00").format(wpm) + " wpm");
+        wpmLabel.setText("Speed: " + new DecimalFormat("#00.00").format(wpm) 
+                                                                  + " wpm");
     }
 
     public void addError(char missedChar) {
